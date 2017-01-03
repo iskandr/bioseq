@@ -45,32 +45,41 @@ class SequenceContextGenerator(KmerLookup):
         self.n_downstream = n_downstream
         self.pad_context = pad_context
 
-    def sequence_contexts(self, query_sequences):
+    def sequence_contexts(self, query):
         """
-        Returns dictionary mapping each query to a list of
-        SequenceContext objects.
+        Generator which yields SequenceContext objects.
         """
         original_sequence_dictionary = self.sequence_dictionary
         n_upstream = self.n_upstream
         n_downstream = self.n_downstream
         pad_context = self.pad_context
+        id_to_offsets = self.find_occurrences(query)
+        for (identifier, offsets) in id_to_offsets.items():
+            for offset in offsets:
+                full_sequence = original_sequence_dictionary[identifier]
+                upstream = full_sequence[:offset]
+                downstream = full_sequence[offset + len(query):]
+                if pad_context:
+                    upstream = '-' * (n_upstream - len(upstream)) + upstream
+                    downstream = downstream + '-' * (n_downstream - len(downstream))
+                yield SequenceContext(
+                    sequence_id=identifier,
+                    offset=offset,
+                    upstream=upstream,
+                    downstream=downstream)
 
+    def sequence_contexts_dictionary(
+            self,
+            queries,
+            sort_results=False):
+        """
+        Returns dictionary mapping each query to a list of
+        SequenceContext objects.
+        """
         query_to_sequence_contexts = {}
-        for query in query_sequences:
-            id_to_offsets = self.find_occurrences(query)
-            results = []
-            for (identifier, offsets) in sorted(id_to_offsets.items()):
-                for offset in offsets:
-                    full_sequence = original_sequence_dictionary[identifier]
-                    upstream = full_sequence[:offset]
-                    downstream = full_sequence[offset + len(query):]
-                    if pad_context:
-                        upstream = '-' * (n_upstream - len(upstream)) + upstream
-                        downstream = downstream + '-' * (n_downstream - len(downstream))
-                    results.append(SequenceContext(
-                        sequence_id=identifier,
-                        offset=offset,
-                        upstream=upstream,
-                        downstream=downstream))
+        for query in queries:
+            results = list(self.sequence_contexts(query))
+            if sort_results:
+                results.sort(key=lambda x: (x.sequence_id, x.offset))
             query_to_sequence_contexts[query] = results
         return query_to_sequence_contexts

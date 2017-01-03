@@ -26,4 +26,7 @@ def test_sequence_context_generator():
         ],
         "DOES_NOT_OCCUR": []
     }
-    eq_(gen.sequence_contexts(query_sequences), expected)
+    eq_(
+        gen.sequence_contexts_dictionary(
+            query_sequences,
+            sort_results=True), expected)
