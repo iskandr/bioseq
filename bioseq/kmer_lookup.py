@@ -22,10 +22,10 @@ def _create_kmer_index_dict(sequence_dictionary, k):
     Return nested dictionary from kmer -> sequence ID -> position list
     """
     kmer_index_dict = defaultdict(lambda: defaultdict(list))
-    for (key, sequence) in sequence_dictionary.items():
+    for (identifier, sequence) in sequence_dictionary.items():
         for i in range(len(sequence) - k):
             kmer = sequence[i:i + k]
-            kmer_index_dict[kmer][key].append(i)
+            kmer_index_dict[kmer][identifier].append(i)
     return kmer_index_dict
 
 
@@ -98,9 +98,10 @@ class KmerLookup(object):
         for i in range(1, len(query) - k):
             new_hits = defaultdict(set)
             kmer = query[i:i + k]
-            for identifier, offset in kmer_index_dict.get(kmer, []):
-                if identifier in hits and offset - 1 in hits[identifier]:
-                    new_hits[identifier].add(offset)
+            for identifier, offsets in kmer_index_dict.get(kmer, {}).items():
+                for offset in offsets:
+                    if identifier in hits and offset - 1 in hits[identifier]:
+                        new_hits[identifier].add(offset)
             if len(new_hits) == 0:
                 break
             hits = new_hits
